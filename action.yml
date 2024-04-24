@@ -1,4 +1,4 @@
-name: Docker Build & ECR Push
+name: Docker Build ECR and Push
 description: Docker build and ECR push
 inputs:
     aws-access-key-id:
@@ -52,7 +52,7 @@ runs:
                   core.exportVariable('ACTIONS_CACHE_URL', process.env['ACTIONS_CACHE_URL'])
                   core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env['ACTIONS_RUNTIME_TOKEN'])
  
-        - name: Docker Build & Push
+        - name: Docker Build and Push
           env:
               platforms: ${{ inputs.build-platforms }}
               docker_image: ${{ env.docker_image }}

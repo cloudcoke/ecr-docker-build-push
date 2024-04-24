@@ -41,7 +41,7 @@ runs:
           env:
               registry: ${{ steps.login-ecr.outputs.registry }}
               repository: ${{ inputs.repository }}
-              image_tag: ${{ inputs.ecr-image-tag }}
+              image_tag: ${{ inputs.image-tag }}
           run: echo "docker_image=$registry/$repository:$image_tag" >> $GITHUB_ENV
           shell: bash
 

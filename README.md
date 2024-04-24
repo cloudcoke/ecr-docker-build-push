@@ -112,3 +112,26 @@ jobs:
                   repository: ${{ secrets.ECR_REPOSITORY }}
                   build-file: path/to/your/Dockerfile
 ```
+
+# Required IAM Permissions
+
+```json
+{
+    "Statement": [
+        {
+            "Action": [
+                "ecr:UploadLayerPart",
+                "ecr:PutImage",
+                "ecr:InitiateLayerUpload",
+                "ecr:GetAuthorizationToken",
+                "ecr:CompleteLayerUpload",
+                "ecr:BatchGetImage",
+                "ecr:BatchCheckLayerAvailability"
+            ],
+            "Effect": "Allow",
+            "Resource": "*"
+        }
+    ],
+    "Version": "2012-10-17"
+}
+```

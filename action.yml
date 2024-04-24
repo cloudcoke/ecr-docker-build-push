@@ -1,0 +1,69 @@
+name: Docker Build & ECR Push
+description: Docker build and ECR push
+inputs:
+    aws-access-key-id:
+        required: true
+    aws-secret-access-key:
+        required: true
+    aws-region:
+        required: false
+        default: ap-northeast-2
+    repository:
+        required: true
+    image-tag:
+        required: false
+        default: latest
+    build-platforms:
+        required: false
+        default: linux/amd64
+    build-context:
+        required: false
+        default: .
+    build-file:
+        required: false
+        default: ./Dockerfile
+
+runs:
+    using: composite
+    steps:
+        - name: Configure AWS Credentials
+          uses: aws-actions/configure-aws-credentials@v4
+          with:
+              aws-access-key-id: ${{ inputs.aws-access-key-id }}
+              aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
+              aws-region: ${{ inputs.aws-region }}
+
+        - name: Login to Amazon ECR
+          id: login-ecr
+          uses: aws-actions/amazon-ecr-login@v2
+
+        - name: Make Docker Image Name
+          env:
+              registry: ${{ steps.login-ecr.outputs.registry }}
+              repository: ${{ inputs.repository }}
+              image_tag: ${{ inputs.ecr-image-tag }}
+          run: echo "docker_image=$registry/$repository:$image_tag" >> $GITHUB_ENV
+          shell: bash
+
+        - name: Expose actions cache variables
+           uses: actions/github-script@v7
+           with:
+              script: |
+                  core.exportVariable('ACTIONS_CACHE_URL', process.env['ACTIONS_CACHE_URL'])
+                  core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env['ACTIONS_RUNTIME_TOKEN'])
+ 
+        - name: Docker Build & Push
+          env:
+              platforms: ${{ inputs.build-platforms }}
+              docker_image: ${{ env.docker_image }}
+              build_context: ${{ inputs.build-context }}
+              build_file: ${{ inputs.build-file }}
+          run: |
+              docker buildx create --name docker-build --driver docker-container --use
+
+              docker buildx build --platform=$platforms --push -t $docker_image \
+              --cache-to type=gha,mode=max \
+              --cache-from type=gha \
+              --provenance=false \
+              -f $build_file $build_context
+          shell: bash

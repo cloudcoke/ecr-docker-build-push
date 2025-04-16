@@ -26,44 +26,37 @@ inputs:
 runs:
     using: composite
     steps:
-        - name: Configure AWS Credentials
-          uses: aws-actions/configure-aws-credentials@v4
-          with:
-              aws-access-key-id: ${{ inputs.aws-access-key-id }}
-              aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
-              aws-region: ${{ inputs.aws-region }}
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+            aws-access-key-id: ${{ inputs.aws-access-key-id }}
+            aws-secret-access-key: ${{ inputs.aws-secret-access-key }}
+            aws-region: ${{ inputs.aws-region }}
 
-        - name: Login to Amazon ECR
-          id: login-ecr
-          uses: aws-actions/amazon-ecr-login@v2
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
 
-        - name: Make Docker Image Name
-          env:
-              registry: ${{ steps.login-ecr.outputs.registry }}
-              repository: ${{ inputs.repository }}
-              image_tag: ${{ inputs.image-tag }}
-          run: echo "docker_image=$registry/$repository:$image_tag" >> $GITHUB_ENV
-          shell: bash
+      - name: Make Docker Image Name
+        env:
+            registry: ${{ steps.login-ecr.outputs.registry }}
+            repository: ${{ inputs.repository }}
+            image_tag: ${{ inputs.image-tag }}
+        run: echo "DOCKER_IMAGE_NAME_WITH_TAG=$registry/$repository:$image_tag" >> $GITHUB_ENV
+        shell: bash
 
-        - name: Expose actions cache variables
-          uses: actions/github-script@v7
-          with:
-              script: |
-                  core.exportVariable('ACTIONS_CACHE_URL', process.env['ACTIONS_CACHE_URL'])
-                  core.exportVariable('ACTIONS_RUNTIME_TOKEN', process.env['ACTIONS_RUNTIME_TOKEN'])
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+            version: latest
 
-        - name: Docker Build and Push
-          env:
-              platforms: ${{ inputs.build-platforms }}
-              docker_image: ${{ env.docker_image }}
-              build_context: ${{ inputs.build-context }}
-              build_file: ${{ inputs.build-file }}
-          run: |
-              docker buildx create --name docker-build --driver docker-container --use
-
-              docker buildx build --platform=$platforms --push -t $docker_image \
-              --cache-to type=gha,mode=max \
-              --cache-from type=gha \
-              --provenance=false \
-              -f $build_file $build_context
-          shell: bash
+      - name: Docker Build and Push
+        uses: docker/build-push-action@v6
+        with:
+            push: true
+            cache-from: type=gha
+            cache-to: type=gha,mode=max
+            build-context: ${{ inputs.build-context }}
+            file: ${{ inputs.build-file }}
+            tags: ${{ env.DOCKER_IMAGE_NAME_WITH_TAG }}
+            provenance: false

@@ -16,15 +16,18 @@ inputs:
     build-platforms:
         required: false
         default: linux/amd64
-    build-context:
+    build-contexts:
         required: false
-        default: .
+        default: ""
     build-file:
         required: false
         default: ./Dockerfile
     build-args:
         required: false
         default: ""
+    context:
+        required: false
+        default: .
 
 runs:
     using: composite
@@ -59,7 +62,8 @@ runs:
             push: true
             cache-from: type=gha
             cache-to: type=gha,mode=max
-            build-context: ${{ inputs.build-context }}
+            context: ${{ inputs.context }}
+            build-contexts: ${{ inputs.build-contexts }}
             file: ${{ inputs.build-file }}
             tags: ${{ env.DOCKER_IMAGE_NAME_WITH_TAG }}
             provenance: false

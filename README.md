@@ -3,43 +3,69 @@
 # Usage
 
 ```yaml
-- uses: cloudcoke/ecr-docker-duild-push@v1
+- uses: cloudcoke/ecr-docker-duild-push@v2.1
   with:
-      # AWS IAM access key to use
-      aws-access-key-id: ""
+    # AWS 인증 정보 [필수]
+    aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
-      # AWS IAM access secret key to use
-      aws-secret-access-key: ""
+    # 사용할 AWS 리전 (기본값: ap-northeast-2)
+    aws-region: ap-northeast-2
 
-      # Which AWS region to use
-      # Default: ap-northeast-2
-      aws-region: ""
+    # ECR 레포지토리 이름 [필수]
+    repository: my-app
 
-      # Name of ECR repository to use
-      repository: ""
+    # 도커 이미지 태그 (기본값: latest)
+    image-tag: latest
 
-      # Docker image tag to use
-      # Default: latest
-      image-tag: ""
+    # 빌드 인자 (환경 변수 등)
+    build-args: |
+        NODE_ENV=production
+        API_URL=https://api.example.com
 
-      # List of target platforms for build
-      # Default: linux/amd64
-      # For example: linux/amd64,linux/arm64
-      build-platforms: ""
+    # 추가 도커 빌드 컨텍스트
+    build-contexts: app1=app1/src,app2=app2/src
 
-      # Path to docker build context
-      # Default: .
-      build-context: ""
+    # 외부 캐시 소스 (기본값: type=gha)
+    cache-from: type=gha
 
-      # Path to the Dockerfile
-      # Default: ./Dockerfile
-      # For example: path/to/your/Dockerfile
-      build-file: ""
+    # 캐시 내보내기 설정 (기본값: type=gha,mode=max)
+    cache-to: type=gha,mode=max
+
+    # 빌드 컨텍스트 경로 (기본값: .)
+    context: .
+
+    # Dockerfile 경로 (기본값: ./Dockerfile)
+    file: ./Dockerfile
+
+    # 빌드 완료 후 이미지 푸시 여부 (기본값: true)
+    push: true
+
+    # 타겟 플랫폼 (기본값: linux/amd64)
+    platforms: linux/amd64,linux/arm64
+
+    # 빌드에 대한 출처 증명 생성 여부 (기본값: false)
+    # 고급 사용 예시 (mode=max) (mode=min)
+    provenance: true
+
+    # Docker BuildKit secrets
+    secrets: |
+        id=mysecret,src=path/to/local/secret.txt
+
+    # BuildKit 환경 변수로 전달할 비밀 값들
+    secret-envs: |
+        NPM_TOKEN
+        SENTRY_AUTH_TOKEN
+
+    #파일로 전달할 비밀 값들
+    secret-files: |
+        npmrc=./npmrm
+        ssh_key=./id_rsa
 ```
 
-# Examples
+# 예시
 
-## Default build and push
+## 기본 예시
 
 ```yaml
 name: Build and Push
@@ -56,14 +82,14 @@ jobs:
               uses: actions/checkout@v4
 
             - name: Docker build and ECR push
-              uses: cloudcoke/ecr-docker-build-push@v1
+              uses: cloudcoke/ecr-docker-build-push@v2.1
               with:
                   aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
                   aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
                   repository: ${{ secrets.ECR_REPOSITORY }}
 ```
 
-## Build multiple platforms
+## 멀티 플랫폼 빌드
 
 ```yaml
 name: Build and Push
@@ -80,7 +106,7 @@ jobs:
               uses: actions/checkout@v4
 
             - name: Docker build and ECR push
-              uses: cloudcoke/ecr-docker-build-push@v1
+              uses: cloudcoke/ecr-docker-build-push@v2.1
               with:
                   aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
                   aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -88,7 +114,7 @@ jobs:
                   build-platforms: linux/amd64,linux/arm64
 ```
 
-## Build your Dockerfile
+## Dockerfile 지정
 
 ```yaml
 name: Build and Push
@@ -105,7 +131,7 @@ jobs:
               uses: actions/checkout@v4
 
             - name: Docker build and ECR push
-              uses: cloudcoke/ecr-docker-build-push@v1
+              uses: cloudcoke/ecr-docker-build-push@v2.1
               with:
                   aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
                   aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
@@ -113,25 +139,34 @@ jobs:
                   build-file: path/to/your/Dockerfile
 ```
 
-# Required IAM Permissions
+# ECR에 이미지를 Push하기 위해 필요한 IAM 권한
 
 ```json
 {
+    "Version": "2012-10-17",
     "Statement": [
         {
+            "Sid": "ECRGEtAuthToken",
+            "Effect": "Allow",
+            "Action": [
+                "ecr:GetAuthorizationToken"
+            ],
+            "Resource": "*"
+        },
+        {
+            "Sid": "ECRPush",
+            "Effect": "Allow",
             "Action": [
                 "ecr:UploadLayerPart",
                 "ecr:PutImage",
                 "ecr:InitiateLayerUpload",
-                "ecr:GetAuthorizationToken",
                 "ecr:CompleteLayerUpload",
                 "ecr:BatchGetImage",
                 "ecr:BatchCheckLayerAvailability"
             ],
-            "Effect": "Allow",
-            "Resource": "*"
+            "Resource": "arn:aws:ecr:ap-northeast-2:123456789012:repository/myproject-*-accounts"
         }
-    ],
-    "Version": "2012-10-17"
+    ]
 }
 ```
+ 

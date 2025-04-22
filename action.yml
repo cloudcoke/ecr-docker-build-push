@@ -13,21 +13,42 @@ inputs:
     image-tag:
         required: false
         default: latest
-    build-platforms:
-        required: false
-        default: linux/amd64
-    build-contexts:
-        required: false
-        default: ""
-    build-file:
-        required: false
-        default: ./Dockerfile
     build-args:
         required: false
         default: ""
+    build-contexts:
+        required: false
+        default: ""
+    cache-from:
+        required: false
+        default: type=gha
+    cache-to:
+        required: false
+        default: type=gha,mode=max
     context:
         required: false
         default: .
+    file:
+        required: false
+        default: ./Dockerfile
+    push:
+        required: false
+        default: 'true'
+    platforms:
+        required: false
+        default: linux/amd64
+    provenance:
+        required: false
+        default: 'false'
+    secrets:
+        required: false
+        default: ""
+    secret-envs:
+        required: false
+        default: ""
+    secret-files:
+        required: false
+        default: ""
 
 runs:
     using: composite
@@ -59,12 +80,16 @@ runs:
       - name: Docker Build and Push
         uses: docker/build-push-action@v6
         with:
-            push: true
-            cache-from: type=gha
-            cache-to: type=gha,mode=max
-            context: ${{ inputs.context }}
-            build-contexts: ${{ inputs.build-contexts }}
-            file: ${{ inputs.build-file }}
-            tags: ${{ env.DOCKER_IMAGE_NAME_WITH_TAG }}
-            provenance: false
             build-args: ${{ inputs.build-args }}
+            build-contexts: ${{ inputs.build-contexts }}
+            cache-from: ${{ inputs.cache-from }}
+            cache-to: ${{ input.cache-to }}
+            context: ${{ inputs.context }}
+            file: ${{ inputs.build-file }}
+            push: ${{ inputs.push }}
+            platforms: ${{ inputs.platforms }}
+            secrets: ${{ inputs.secrets }}
+            secret-envs: ${{ inputs.secret-envs }}
+            secret-files: ${{ inputs.secret-files }}
+            tags: ${{ env.DOCKER_IMAGE_NAME_WITH_TAG }}
+            provenance: ${{ inputs.provenance }}
